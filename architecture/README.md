@@ -1,5 +1,7 @@
 # PurpleBPF 아키텍처
 
+![architecture](./architecture.png)
+
 - 원본: [`purplebpf-architecture.drawio`](./purplebpf-architecture.drawio) — [app.diagrams.net](https://app.diagrams.net)에서 열기 (File → Open from → Device)
 - 색: 빨강=공격층 · 초록=방어층 · 파랑=측정/데이터 · 노랑=사람 검수 · 회색 점선=미구현
 
@@ -22,5 +24,3 @@
 
 데이터 구조 상세는 [`../data-model`](../data-model/README.md) 참고.
 
-<!-- 아이콘 보강 후 PNG로 export해서 architecture.png로 넣고 아래 주석 해제 -->
-<!-- ![architecture](./architecture.png) -->
