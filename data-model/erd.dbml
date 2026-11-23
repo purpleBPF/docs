@@ -1,0 +1,60 @@
+Project PurpleBPF {
+  database_type: 'PostgreSQL'
+  Note: 'PurpleBPF 커버리지 루프 데이터 모델 — 원본(OLTP) + dbt 결과 테이블'
+}
+
+Table execution_log {
+  run_id bigint [pk, increment, note: '실행 1회']
+  round_id integer [not null, note: 'Dagster 파이프라인 1회']
+  chain_id uuid [not null, note: '생성된 공격 체인 1개']
+  technique varchar(16) [not null, note: 'CHECK ^T[0-9]{4}(\.[0-9]{3})?$']
+  channel varchar(16) [not null, note: "CHECK IN ('syscall','io_uring')"]
+  success boolean [not null, note: 'false = 공격이 실제로 안 나감 (차단/실패)']
+  started_at timestamptz [not null]
+  finished_at timestamptz
+  container_id varchar(64) [not null, note: 'Docker short id 12자']
+  created_at timestamptz [not null, default: `now()`]
+  Note: '무엇을 쐈나 (y_true)'
+}
+
+Table detections {
+  detection_id uuid [pk, default: `gen_random_uuid()`]
+  run_id bigint [null, note: 'FK 없음 — FP는 대응 실행이 없어 NULL']
+  round_id integer [null]
+  technique varchar(16) [not null]
+  channel varchar(16) [not null]
+  rule_name varchar(128) [not null]
+  detected_at timestamptz [not null]
+  container_id varchar(64) [note: 'Tetragon id 31자']
+  binary_path varchar(256)
+  created_at timestamptz [not null, default: `now()`]
+  Note: '무엇을 잡았나 (y_pred)'
+}
+
+Table coverage {
+  technique varchar
+  round_id integer
+  shots bigint
+  detects bigint
+  tp bigint
+  fn bigint
+  invalid bigint
+  unmatched_detections bigint
+  result varchar
+  Note: 'dbt coverage.sql 결과'
+}
+
+Table recall_by_round {
+  round_id integer
+  tp bigint
+  fn bigint
+  invalid bigint
+  recall_pct numeric
+  Note: 'dbt recall_by_round.sql 결과'
+}
+
+// 전부 논리적 연결 (물리 FK 없음)
+Ref: detections.run_id > execution_log.run_id
+Ref: execution_log.technique > coverage.technique
+Ref: detections.technique > coverage.technique
+Ref: execution_log.round_id > recall_by_round.round_id

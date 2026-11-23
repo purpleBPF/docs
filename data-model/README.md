@@ -32,64 +32,9 @@ flowchart LR
 
 ![ERD](./erd.png)
 
-<details><summary>Mermaid 원본</summary>
-
-
-```mermaid
-erDiagram
-    execution_log ||..o{ detections : "run_id (논리적 연결, FK 없음)"
-    execution_log ||..o{ coverage : "dbt가 집계"
-    detections   ||..o{ coverage : "dbt가 집계"
-    coverage     ||..o{ recall_by_round : "같은 판정 로직"
-
-    execution_log {
-        BIGINT run_id PK "autoincrement"
-        INTEGER round_id "NOT NULL, idx"
-        UUID chain_id "NOT NULL"
-        VARCHAR16 technique "CHECK T#### 또는 T####.###"
-        VARCHAR16 channel "CHECK syscall 또는 io_uring"
-        BOOLEAN success "NOT NULL"
-        TIMESTAMPTZ started_at "NOT NULL, idx"
-        TIMESTAMPTZ finished_at "NULL"
-        VARCHAR64 container_id "Docker short id 12자"
-        TIMESTAMPTZ created_at "default now()"
-    }
-
-    detections {
-        UUID detection_id PK "gen_random_uuid()"
-        BIGINT run_id "NULL 허용 (FP)"
-        INTEGER round_id "NULL 허용"
-        VARCHAR16 technique "NOT NULL"
-        VARCHAR16 channel "CHECK syscall 또는 io_uring"
-        VARCHAR128 rule_name "NOT NULL, idx"
-        TIMESTAMPTZ detected_at "NOT NULL, idx"
-        VARCHAR64 container_id "Tetragon id 31자"
-        VARCHAR256 binary_path "NULL"
-        TIMESTAMPTZ created_at "default now()"
-    }
-
-    coverage {
-        VARCHAR technique "기법별 1행"
-        INTEGER round_id
-        BIGINT shots "성공한 실행 수"
-        BIGINT detects "= tp"
-        BIGINT tp
-        BIGINT fn
-        BIGINT invalid "success=false"
-        BIGINT unmatched_detections "실행과 안 묶인 탐지"
-        VARCHAR result "TP, FN, INVALID, UNMATCHED"
-    }
-
-    recall_by_round {
-        INTEGER round_id "라운드별 1행"
-        BIGINT tp
-        BIGINT fn
-        BIGINT invalid
-        DECIMAL recall_pct "tp/(tp+fn)*100, INVALID 제외"
-    }
-```
-
-</details>
+- 인터랙티브 다이어그램: [dbdiagram.io](https://dbdiagram.io/d/ERD%EB%8B%A4%EC%9D%B4%EC%96%B4%EA%B7%B8-6a6ae13f067336e1de25e3dc)
+- 원본(DBML): [`erd.dbml`](./erd.dbml) — dbdiagram.io에 붙여넣으면 같은 그림이 나온다.
+- 관계선은 전부 **논리적 연결**이다(물리 FK 없음). 1 쪽: `execution_log.run_id`, `coverage.technique`, `recall_by_round.round_id`
 
 ### 1-1. `execution_log` — "무엇을 쐈나" (정답, y_true)
 - **누가 쓰나**: `executor.py`가 공격 체인을 실행할 때마다 1행씩 쓴다. REVIEW/REJECT로 막힌 시도도 `success=false`로 기록한다.
